@@ -2,6 +2,7 @@ mod models;
 mod utils;
 
 use crate::models::DatHostMatch;
+use crate::utils::{get_series_id, get_team_one_id, update_score};
 use actix_web::error::HttpError;
 use actix_web::web::Json;
 use actix_web::{post, web, App, HttpResponse, HttpServer};
@@ -10,12 +11,9 @@ use awc::Client;
 use dotenv::dotenv;
 use rusoto_core::Region;
 use rusoto_s3::{S3Client, S3};
-use sqlx::postgres::PgPoolOptions;
 use sqlx::{PgPool, Pool, Postgres};
 use std::env;
 use std::time::Duration;
-use anyhow::Result;
-use crate::utils::update_score;
 
 #[post("/api/map-end")]
 async fn map_end(
@@ -36,37 +34,72 @@ async fn map_end(
             &dathost_match.game_server_id, demo_path
         ))
         .send()
-        .await?
+        .await
+        .unwrap()
         .body()
         .limit(300_000_000)
-        .await?;
+        .await
+        .unwrap();
     let client = S3Client::new(Region::Custom {
         name: env::var("AWS_REGION").unwrap_or("auto".to_string()),
         endpoint: env::var("AWS_ENDPOINT").expect("Expected AWS_ENDPOINT"),
     });
     client
         .put_object(utils::get_put_object(demo.to_vec(), &dathost_match.id))
-        .await?;
-    update_score(pool.get_ref(), &(dathost_match.team1_stats.as_ref().unwrap().score as i32),
-                 &(dathost_match.team1_stats.as_ref().unwrap().score as i32),
-                 &dathost_match.game_server_id,
-                 &dathost_match.map
-    ).await?;
+        .await
+        .unwrap();
+    let match_series_id = get_series_id(pool.as_ref(), &dathost_match).await.unwrap();
+    let team_one_id: i32 = get_team_one_id(pool.as_ref(), &match_series_id)
+        .await
+        .unwrap();
+    let match_id: i32 = sqlx::query_scalar!(
+        "select m.id from match m 
+         join maps on maps.id = m.map 
+         where m.match_series = $1 and maps.name = $2",
+        &match_series_id,
+        &dathost_match.map,
+    )
+    .fetch_one(pool.as_ref())
+    .await
+    .unwrap();
+    update_score(
+        pool.get_ref(),
+        &dathost_match.0,
+        match_series_id,
+        team_one_id,
+    )
+    .await
+    .unwrap();
     sqlx::query!(
-            "update match
+        "update match
             SET completed_at = now()
-        where id =
-            (select m.id
-            from servers s
-            join match m on s.match_series = m.match_series
-            join maps m2 on m2.id = m.map
-            where s.server_id = $1
-            and m2.name = $2)",
-            &dathost_match.game_server_id,
-            &dathost_match.map,
+        where id = $1",
+        match_id,
+    )
+    .execute(pool.as_ref())
+    .await
+    .unwrap();
+    let maps_remaining: i64 = sqlx::query_scalar!(
+        "select count(m)
+        from match_series ms
+         join match m on ms.id = m.match_series
+        where ms.id = $1
+        and m.completed_at is null",
+        match_series_id
+    )
+    .fetch_one(pool.as_ref())
+    .await
+    .unwrap()
+    .unwrap();
+    if maps_remaining == 0 {
+        sqlx::query!(
+            "update match_series set completed_at = now() where match_series.id = $1",
+            match_series_id,
         )
-        .execute(&pool)
-        .await?;
+        .execute(pool.as_ref())
+        .await
+        .unwrap();
+    }
     Ok(HttpResponse::new(StatusCode::OK))
 }
 
@@ -75,14 +108,15 @@ async fn round_end(
     dathost_match: Json<DatHostMatch>,
     pool: web::Data<Pool<Postgres>>,
 ) -> Result<HttpResponse, HttpError> {
-    update_score(pool.get_ref(), &(dathost_match.team1_stats.as_ref().unwrap().score as i32),
-                 &(dathost_match.team1_stats.as_ref().unwrap().score as i32),
-                 &dathost_match.game_server_id,
-                 &dathost_match.map
-    ).await?;
+    let match_series_id = get_series_id(pool.as_ref(), &dathost_match).await.unwrap();
+    let team_one_id: i32 = get_team_one_id(pool.as_ref(), &match_series_id)
+        .await
+        .unwrap();
+    update_score(pool.get_ref(), &dathost_match, match_series_id, team_one_id)
+        .await
+        .unwrap();
     Ok(HttpResponse::new(StatusCode::OK))
 }
-
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -90,12 +124,29 @@ async fn main() -> std::io::Result<()> {
     let pool = PgPool::connect(&env::var("DATABASE_URL").expect("Expected DATABASE_URL"))
         .await
         .unwrap();
+    let url = match env::var("ENV") {
+        Ok(v) => {
+            if v == "prd" {
+                "0.0.0.0"
+            } else {
+                "127.0.0.1"
+            }
+        }
+        Err(_) => "127.0.0.1",
+    };
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .service(map_end)
+            .service(round_end)
     })
-        .bind(("127.0.0.1", 8080))?
-        .run()
-        .await
+    .bind((
+        url,
+        match env::var("PORT") {
+            Ok(v) => v.parse::<u16>().expect("PORT not valid u16"),
+            Err(_) => 8080,
+        },
+    ))?
+    .run()
+    .await
 }

@@ -16,4 +16,5 @@ rusoto_core = "0.48.0"
 rusoto_sqs = "0.48.0"
 rusoto_s3 = "0.48.0"
 futures-util = "0.3.24"
-anyhow = "*"
+anyhow = "1.0.66"
+steamid = { git = "https://github.com/JohnPeel/steamid" }
