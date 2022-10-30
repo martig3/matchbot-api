@@ -69,7 +69,7 @@ async fn map_end(
         &dathost_match.0,
         match_series_id,
         team_one_id,
-        map
+        map,
     )
     .await
     .unwrap();
@@ -123,9 +123,15 @@ async fn round_end(
         .timeout(Duration::from_secs(60 * 10))
         .finish();
     let map = get_server_map(&client, &dathost_match).await;
-    update_score(pool.get_ref(), &dathost_match, match_series_id, team_one_id, map)
-        .await
-        .unwrap();
+    update_score(
+        pool.get_ref(),
+        &dathost_match,
+        match_series_id,
+        team_one_id,
+        map,
+    )
+    .await
+    .unwrap();
     Ok(HttpResponse::new(StatusCode::OK))
 }
 

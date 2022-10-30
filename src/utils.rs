@@ -1,10 +1,10 @@
 use crate::{DatHostMatch, DatHostServer};
 use anyhow::Result;
+use awc::Client;
 use rusoto_s3::{PutObjectRequest, StreamingBody};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{FromRow, Pool, Postgres};
 use std::env;
-use awc::Client;
 use steamid::{AccountType, Instance, SteamId, Universe};
 
 trait ParseWithDefaults: Sized {
@@ -121,7 +121,7 @@ pub async fn update_score(
 
 pub async fn get_server_map(client: &Client, dathost_match: &DatHostMatch) -> String {
     let map = match &dathost_match.map {
-        Some(m) => {m.clone()}
+        Some(m) => m.clone(),
         None => {
             let server: DatHostServer = client
                 .get(format!(
