@@ -2,7 +2,8 @@ mod models;
 mod utils;
 
 use crate::models::DatHostMatch;
-use crate::utils::{get_series_id, get_team_one_id, update_score};
+use crate::models::DatHostServer;
+use crate::utils::{get_series_id, get_server_map, get_team_one_id, update_score};
 use actix_web::error::HttpError;
 use actix_web::web::Json;
 use actix_web::{post, web, App, HttpResponse, HttpServer};
@@ -40,11 +41,11 @@ async fn map_end(
         .limit(300_000_000)
         .await
         .unwrap();
-    let client = S3Client::new(Region::Custom {
+    let s3_client = S3Client::new(Region::Custom {
         name: env::var("AWS_REGION").unwrap_or("auto".to_string()),
         endpoint: env::var("AWS_ENDPOINT").expect("Expected AWS_ENDPOINT"),
     });
-    client
+    s3_client
         .put_object(utils::get_put_object(demo.to_vec(), &dathost_match.id))
         .await
         .unwrap();
@@ -52,12 +53,13 @@ async fn map_end(
     let team_one_id: i32 = get_team_one_id(pool.as_ref(), &match_series_id)
         .await
         .unwrap();
+    let map = get_server_map(&client, &dathost_match).await;
     let match_id: i32 = sqlx::query_scalar!(
         "select m.id from match m 
          join maps on maps.id = m.map 
          where m.match_series = $1 and maps.name = $2",
         &match_series_id,
-        &dathost_match.map,
+        &map,
     )
     .fetch_one(pool.as_ref())
     .await
@@ -67,6 +69,7 @@ async fn map_end(
         &dathost_match.0,
         match_series_id,
         team_one_id,
+        map,
     )
     .await
     .unwrap();
@@ -112,9 +115,23 @@ async fn round_end(
     let team_one_id: i32 = get_team_one_id(pool.as_ref(), &match_series_id)
         .await
         .unwrap();
-    update_score(pool.get_ref(), &dathost_match, match_series_id, team_one_id)
-        .await
-        .unwrap();
+    let client = Client::builder()
+        .basic_auth(
+            env::var("DATHOST_USER").unwrap(),
+            Some(&env::var("DATHOST_PASSWORD").unwrap()),
+        )
+        .timeout(Duration::from_secs(60 * 10))
+        .finish();
+    let map = get_server_map(&client, &dathost_match).await;
+    update_score(
+        pool.get_ref(),
+        &dathost_match,
+        match_series_id,
+        team_one_id,
+        map,
+    )
+    .await
+    .unwrap();
     Ok(HttpResponse::new(StatusCode::OK))
 }
 
