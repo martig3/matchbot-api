@@ -1,9 +1,10 @@
-use crate::DatHostMatch;
+use crate::{DatHostMatch, DatHostServer};
 use anyhow::Result;
 use rusoto_s3::{PutObjectRequest, StreamingBody};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{FromRow, Pool, Postgres};
 use std::env;
+use awc::Client;
 use steamid::{AccountType, Instance, SteamId, Universe};
 
 trait ParseWithDefaults: Sized {
@@ -76,6 +77,7 @@ pub async fn update_score(
     dathost_match: &DatHostMatch,
     series_id: i32,
     team_one_id: i32,
+    map: String,
 ) -> Result<PgQueryResult> {
     let ds_one = &(dathost_match.team1_stats.as_ref().unwrap().score as i32);
     let ds_two = &(dathost_match.team2_stats.as_ref().unwrap().score as i32);
@@ -111,10 +113,31 @@ pub async fn update_score(
         team_one_score,
         team_two_score,
         &dathost_match.game_server_id,
-        &dathost_match.map,
+        &map,
     )
     .execute(pool)
     .await?)
+}
+
+pub async fn get_server_map(client: &Client, dathost_match: &DatHostMatch) -> String {
+    let map = match &dathost_match.map {
+        Some(m) => {m.clone()}
+        None => {
+            let server: DatHostServer = client
+                .get(format!(
+                    "https://dathost.net/api/0.1/game-servers/{}",
+                    &dathost_match.game_server_id
+                ))
+                .send()
+                .await
+                .unwrap()
+                .json::<DatHostServer>()
+                .await
+                .unwrap();
+            server.csgo_settings.mapgroup_start_map.clone()
+        }
+    };
+    map
 }
 
 pub fn get_put_object(contents: Vec<u8>, dathost_match_id: &String) -> PutObjectRequest {
