@@ -8,3 +8,20 @@ Supports the following webhooks & associated features:
 
 - `/match-end` - handles match end logic & auto demo upload to S3 compatible bucket
 - `/round-end` - handles round end score updates
+
+## Usage
+Set following env:
+```dotenv
+ENV=<prd or dev>
+PORT=8080
+RUST_LOG=matchbot-api=info
+DATHOST_USER=<dathost username/email>
+DATHOST_PASSWORD=<dathost password>
+DATABASE_URL=postgres://postgres:postgres@localhost/matchbot
+AWS_ACCESS_KEY_ID=<aws access key>
+AWS_SECRET_ACCESS_KEY=<aws secret key>
+BUCKET_NAME=<s3 bucketname>
+AWS_ENDPOINT=<s3 endpoint (I made this to use cloudflare s2, so unless you manually provide the aws endpoint it won't work. Submit an feature request if someone wants this!>
+```
+
+`docker run --env-file .env -d -p 8090:8090 ghcr.io/martig3/matchbot-api:latest`
