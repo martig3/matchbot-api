@@ -1,10 +1,8 @@
 use crate::{DatHostMatch, DatHostServer};
 use anyhow::Result;
 use awc::Client;
-use rusoto_s3::{PutObjectRequest, StreamingBody};
 use sqlx::postgres::PgQueryResult;
 use sqlx::{FromRow, Pool, Postgres};
-use std::env;
 use steamid::{AccountType, Instance, SteamId, Universe};
 
 trait ParseWithDefaults: Sized {
@@ -138,41 +136,4 @@ pub async fn get_server_map(client: &Client, dathost_match: &DatHostMatch) -> St
         }
     };
     map
-}
-
-pub fn get_put_object(contents: Vec<u8>, dathost_match_id: &String) -> PutObjectRequest {
-    PutObjectRequest {
-        acl: None,
-        body: Some(StreamingBody::from(contents)),
-        bucket: env::var("BUCKET_NAME").expect("Expected BUCKET_NAME"),
-        bucket_key_enabled: None,
-        cache_control: None,
-        content_disposition: None,
-        content_encoding: None,
-        content_language: None,
-        content_length: None,
-        content_md5: None,
-        content_type: Some("application/octet-stream".to_string()),
-        expected_bucket_owner: None,
-        expires: None,
-        grant_full_control: None,
-        grant_read: None,
-        grant_read_acp: None,
-        grant_write_acp: None,
-        key: format!("{}.dem", &dathost_match_id),
-        metadata: None,
-        object_lock_legal_hold_status: None,
-        object_lock_mode: None,
-        object_lock_retain_until_date: None,
-        request_payer: None,
-        sse_customer_algorithm: None,
-        sse_customer_key: None,
-        sse_customer_key_md5: None,
-        ssekms_encryption_context: None,
-        ssekms_key_id: None,
-        server_side_encryption: None,
-        storage_class: None,
-        tagging: None,
-        website_redirect_location: None,
-    }
 }

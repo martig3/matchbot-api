@@ -5,16 +5,18 @@ use crate::models::DatHostMatch;
 use crate::models::DatHostServer;
 use crate::utils::{get_series_id, get_server_map, get_team_one_id, update_score};
 use actix_web::error::HttpError;
+use actix_web::middleware::Logger;
 use actix_web::web::Json;
 use actix_web::{post, web, App, HttpResponse, HttpServer};
 use awc::http::StatusCode;
 use awc::Client;
 use dotenv::dotenv;
-use rusoto_core::Region;
-use rusoto_s3::{S3Client, S3};
+use s3::creds::Credentials;
+use s3::{Bucket, Region};
 use sqlx::{PgPool, Pool, Postgres};
 use std::env;
 use std::time::Duration;
+use log::LevelFilter;
 
 #[post("/api/map-end")]
 async fn map_end(
@@ -29,6 +31,7 @@ async fn map_end(
         .timeout(Duration::from_secs(60 * 10))
         .finish();
     let demo_path = format!("{}.dem", &dathost_match.id);
+    log::debug!("fetching '{}'", &demo_path);
     let demo = client
         .get(format!(
             "https://dathost.net/api/0.1/game-servers/{}/files/{}",
@@ -41,14 +44,31 @@ async fn map_end(
         .limit(300_000_000)
         .await
         .unwrap();
-    let s3_client = S3Client::new(Region::Custom {
-        name: env::var("AWS_REGION").unwrap_or("auto".to_string()),
-        endpoint: env::var("AWS_ENDPOINT").expect("Expected AWS_ENDPOINT"),
-    });
-    s3_client
-        .put_object(utils::get_put_object(demo.to_vec(), &dathost_match.id))
-        .await
-        .unwrap();
+    let region = env::var("AWS_REGION").unwrap_or("auto".to_string());
+    let endpoint = env::var("AWS_ENDPOINT").unwrap();
+    let bucket = Bucket::new(
+        env::var("BUCKET_NAME")
+            .expect("Expected BUCKET_NAME")
+            .as_str(),
+        Region::Custom { region, endpoint },
+        Credentials::default().unwrap(),
+    )
+    .unwrap();
+    log::debug!("uploading '{}'", &demo_path);
+    let put_resp = bucket
+        .put_object(format!("{}", demo_path), &demo.to_vec())
+        .await;
+    if let Err(e) = put_resp {
+        log::error!("{:#?}", e);
+        return Ok(HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR));
+    } else {
+        let status_code = put_resp.unwrap().status_code();
+        if status_code != 200 {
+            log::error!("S3 upload error, status code {}", status_code);
+            return Ok(HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR));
+        }
+    }
+    log::debug!("demo upload complete");
     let match_series_id = get_series_id(pool.as_ref(), &dathost_match).await.unwrap();
     let team_one_id: i32 = get_team_one_id(pool.as_ref(), &match_series_id)
         .await
@@ -73,6 +93,7 @@ async fn map_end(
     )
     .await
     .unwrap();
+    log::debug!("updated match score");
     sqlx::query!(
         "update match
             SET completed_at = now()
@@ -138,6 +159,11 @@ async fn round_end(
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
+    env_logger::builder()
+        .filter_module(module_path!(), LevelFilter::Info)
+        .parse_default_env()
+        .init();
+    log::info!("Starting matchbot-api");
     let pool = PgPool::connect(&env::var("DATABASE_URL").expect("Expected DATABASE_URL"))
         .await
         .unwrap();
@@ -151,19 +177,18 @@ async fn main() -> std::io::Result<()> {
         }
         Err(_) => "127.0.0.1",
     };
+    let port = match env::var("PORT") {
+        Ok(v) => v.parse::<u16>().expect("PORT not valid u16"),
+        Err(_) => 8080,
+    };
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
+            .wrap(Logger::default())
             .service(map_end)
             .service(round_end)
     })
-    .bind((
-        url,
-        match env::var("PORT") {
-            Ok(v) => v.parse::<u16>().expect("PORT not valid u16"),
-            Err(_) => 8080,
-        },
-    ))?
+    .bind((url, port))?
     .run()
     .await
 }
