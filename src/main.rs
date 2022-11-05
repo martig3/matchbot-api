@@ -16,6 +16,7 @@ use s3::{Bucket, Region};
 use sqlx::{PgPool, Pool, Postgres};
 use std::env;
 use std::time::Duration;
+use log::LevelFilter;
 
 #[post("/api/map-end")]
 async fn map_end(
@@ -30,6 +31,7 @@ async fn map_end(
         .timeout(Duration::from_secs(60 * 10))
         .finish();
     let demo_path = format!("{}.dem", &dathost_match.id);
+    log::debug!("fetching '{}'", &demo_path);
     let demo = client
         .get(format!(
             "https://dathost.net/api/0.1/game-servers/{}/files/{}",
@@ -52,19 +54,21 @@ async fn map_end(
         Credentials::default().unwrap(),
     )
     .unwrap();
+    log::debug!("uploading '{}'", &demo_path);
     let put_resp = bucket
         .put_object(format!("{}", demo_path), &demo.to_vec())
         .await;
     if let Err(e) = put_resp {
-        eprintln!("{:#?}", e);
+        log::error!("{:#?}", e);
         return Ok(HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR));
     } else {
         let status_code = put_resp.unwrap().status_code();
         if status_code != 200 {
-            eprintln!("s3 upload status code: {}", status_code);
+            log::error!("S3 upload error, status code {}", status_code);
             return Ok(HttpResponse::new(StatusCode::INTERNAL_SERVER_ERROR));
         }
     }
+    log::debug!("demo upload complete");
     let match_series_id = get_series_id(pool.as_ref(), &dathost_match).await.unwrap();
     let team_one_id: i32 = get_team_one_id(pool.as_ref(), &match_series_id)
         .await
@@ -89,6 +93,7 @@ async fn map_end(
     )
     .await
     .unwrap();
+    log::debug!("updated match score");
     sqlx::query!(
         "update match
             SET completed_at = now()
@@ -154,6 +159,11 @@ async fn round_end(
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
+    env_logger::builder()
+        .filter_module(module_path!(), LevelFilter::Info)
+        .parse_default_env()
+        .init();
+    log::info!("Starting matchbot-api");
     let pool = PgPool::connect(&env::var("DATABASE_URL").expect("Expected DATABASE_URL"))
         .await
         .unwrap();
@@ -171,7 +181,6 @@ async fn main() -> std::io::Result<()> {
         Ok(v) => v.parse::<u16>().expect("PORT not valid u16"),
         Err(_) => 8080,
     };
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
     HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(pool.clone()))
