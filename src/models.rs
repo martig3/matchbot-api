@@ -51,7 +51,7 @@ pub struct DatHostServer {
 pub struct CsgoSettings {
     pub mapgroup_start_map: String,
     #[serde(rename = "steam_game_server_login_token")]
-    pub gslt: String
+    pub gslt: String,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -59,7 +59,7 @@ pub struct DeleteGsltRequest {
     pub(crate) steamid: u64,
 }
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct QueryLoginTokenRequest{
+pub struct QueryLoginTokenRequest {
     pub(crate) login_token: String,
 }
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -69,7 +69,7 @@ pub struct SteamApiRootResponse {
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct QueryLoginTokenResponse {
-    pub steamid: u64,
+    pub steamid: String,
     pub is_banned: bool,
     pub expires: u64,
 }
