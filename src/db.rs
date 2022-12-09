@@ -1,6 +1,6 @@
 use sqlx::{PgExecutor, Result};
 
-use crate::models::{MatchId, MatchSeriesId, ServerId, TeamId};
+use crate::models::{MatchId, MatchSeries, MatchSeriesId, ServerId, TeamId};
 
 pub async fn get_team_one_id(
     executor: impl PgExecutor<'_>,
@@ -18,18 +18,18 @@ pub async fn get_team_one_id(
     .map(TeamId)
 }
 
-// TODO: Change this to return series instead
-pub async fn get_series_id(
+pub async fn get_series(
     executor: impl PgExecutor<'_>,
     server_id: &ServerId,
-) -> Result<MatchSeriesId> {
-    sqlx::query_scalar!(
-        "select s.match_series from servers s where s.server_id = $1",
-        server_id.as_ref()
+) -> Result<MatchSeries> {
+    Ok(sqlx::query_as(
+        "select ms.* from servers s
+            join match_series ms on ms.id = s.match_series
+         where s.server_id = $1",
     )
+    .bind(server_id.as_ref())
     .fetch_one(executor)
-    .await
-    .map(MatchSeriesId)
+    .await?)
 }
 
 pub async fn is_player_on_team(

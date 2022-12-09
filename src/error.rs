@@ -17,7 +17,6 @@ pub enum Error {
     SteamId(#[from] steamid::Error),
     #[error(transparent)]
     TryFromInt(#[from] TryFromIntError),
-
     #[error("failed to upload demo to S3")]
     DemoUploadError,
 }

@@ -2,20 +2,20 @@ mod dathost;
 mod db;
 mod error;
 mod models;
+mod steam;
 mod utils;
 mod webhooks;
-mod steam;
 
 use std::env;
 
-use actix_web::{middleware::Logger, web, App, HttpServer,};
+use actix_web::{middleware::Logger, web, App, HttpServer};
 use s3::{creds::Credentials, Bucket, Region};
 use sqlx::PgPool;
 
 use self::{
-    webhooks::{map_end, round_end},
     dathost::DathostClient,
     models::DatHostMatch,
+    webhooks::{map_end, round_end},
 };
 
 #[actix_web::main]

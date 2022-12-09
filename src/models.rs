@@ -1,5 +1,8 @@
 use derive_more::{AsRef, Deref, Display, From, Into};
 use serde::{Deserialize, Serialize};
+use sqlx::types::time::OffsetDateTime;
+use sqlx::{FromRow, Type};
+use strum::EnumIter;
 
 #[derive(Clone, Copy, Debug, From, Into, Deref, AsRef, Display, Serialize, Deserialize)]
 #[repr(transparent)]
@@ -72,4 +75,23 @@ pub struct QueryLoginTokenResponse {
     pub steamid: String,
     pub is_banned: bool,
     pub expires: u64,
+}
+
+#[derive(Debug, Type, EnumIter)]
+#[sqlx(rename_all = "lowercase", type_name = "series_type")]
+pub enum SeriesType {
+    Bo1,
+    Bo3,
+    Bo5,
+}
+#[allow(unused)]
+#[derive(Debug, FromRow)]
+pub struct MatchSeries {
+    pub id: i32,
+    pub team_one: i32,
+    pub team_two: i32,
+    pub series_type: SeriesType,
+    pub dathost_match: Option<String>,
+    pub created_at: OffsetDateTime,
+    pub completed_at: Option<OffsetDateTime>,
 }
