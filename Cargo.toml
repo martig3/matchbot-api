@@ -5,17 +5,21 @@ authors = ["MartinWienc <32913968+MartinWienc@users.noreply.github.com>"]
 edition = "2021"
 
 [dependencies]
-dotenv = "0.15.0"
-actix-web = { version = "4.1.0", features = ["rustls"] }
-serde = { version = "1.0.144", features = ["derive"] }
-serde_json = "1.0.85"
-sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres", "macros", "migrate", "time", "tls", "offline"] }
-awc = { version = "3.0.1", features = ["rustls"] }
-rust-s3 = { version = "0.32.3", default-features = false, features = ["with-tokio", "tokio-rustls-tls"] }
-aws-creds = { version = "0.34.0", default-features = false, features = ["rustls-tls"] }
-rustls = "*"
-futures-util = "0.3.24"
-anyhow = "1.0.66"
+
 steamid = { git = "https://github.com/JohnPeel/steamid" }
-env_logger = "*"
-log = "*"
+
+base64 = "0.13"
+bytes = "1.2"
+derive_more = "0.99"
+dotenvy = "0.15"
+env_logger = "0.9"
+http = "0.2"
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+
+actix-web = { version = "4.1", features = ["rustls"] }
+reqwest = { version = "0.11", default-features = false, features = ["rustls-tls", "json"] }
+rust-s3 = { version = "0.32", default-features = false, features = ["with-tokio", "tokio-rustls-tls"] }
+sqlx = { version = "0.6", features = ["runtime-tokio-rustls", "postgres", "macros", "migrate", "time", "tls", "offline"] }

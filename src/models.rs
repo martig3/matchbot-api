@@ -1,10 +1,33 @@
-use serde::Deserialize;
-use serde::Serialize;
+use derive_more::{AsRef, Deref, Display, From, Into};
+use serde::{Deserialize, Serialize};
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Clone, Copy, Debug, From, Into, Deref, AsRef, Display, Serialize, Deserialize)]
+#[repr(transparent)]
+pub struct MatchId(pub(crate) i32);
+
+#[derive(Clone, Copy, Debug, From, Into, Deref, AsRef, Display, Serialize, Deserialize)]
+#[repr(transparent)]
+pub struct MatchSeriesId(pub(crate) i32);
+
+#[derive(Clone, Copy, Debug, From, Into, Deref, AsRef, Display, Serialize, Deserialize)]
+#[repr(transparent)]
+pub struct TeamId(pub(crate) i32);
+
+#[derive(Debug, From, Into, Deref, AsRef, Display, Serialize, Deserialize)]
+#[repr(transparent)]
+pub struct ServerId(pub(crate) String);
+
+#[derive(Clone, Copy, Debug)]
+pub struct SteamUser {
+    pub discord: i64,
+    pub steam: i64,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DatHostMatch {
     pub id: String,
-    pub game_server_id: String,
+    #[serde(rename = "game_server_id")]
+    pub server_id: ServerId,
     pub match_series_id: Option<String>,
     pub map: Option<String>,
     pub finished: bool,
@@ -14,16 +37,17 @@ pub struct DatHostMatch {
     pub team2_stats: Option<TeamStats>,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct TeamStats {
     pub score: u32,
 }
 
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DatHostServer {
     pub csgo_settings: CsgoSettings,
 }
-#[derive(Deserialize, Serialize, Debug)]
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct CsgoSettings {
     pub mapgroup_start_map: String,
 }
