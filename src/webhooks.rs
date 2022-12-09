@@ -13,6 +13,9 @@ use actix_web::{web, Responder};
 use http::StatusCode;
 use s3::Bucket;
 use sqlx::PgPool;
+use std::env;
+use std::time::Duration;
+use tokio::time::sleep;
 
 #[post("/api/map-end")]
 pub async fn map_end(
@@ -21,6 +24,8 @@ pub async fn map_end(
     client: web::Data<DathostClient>,
     bucket: web::Data<Bucket>,
 ) -> Result<impl Responder, Error> {
+    let tv_delay = env::var("TV_DELAY").expect("Expected TV_DELAY");
+    sleep(Duration::from_secs(tv_delay.parse::<u64>().unwrap() + 30)).await;
     // TODO: update this to support Bo3 by appending '_match#'
     let path = format!("{}.dem", dathost_match.id);
     let demo = client.get_file(&dathost_match.server_id, &path).await?;
