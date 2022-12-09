@@ -18,6 +18,7 @@ pub async fn get_team_one_id(
     .map(TeamId)
 }
 
+// TODO: Change this to return series instead
 pub async fn get_series_id(
     executor: impl PgExecutor<'_>,
     server_id: &ServerId,
