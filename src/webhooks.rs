@@ -24,7 +24,7 @@ pub async fn map_end(
     client: web::Data<DathostClient>,
     bucket: web::Data<Bucket>,
 ) -> Result<impl Responder, Error> {
-    let tv_delay = env::var("TV_DELAY").expect("Expected TV_DELAY");
+    let tv_delay = env::var("TV_DELAY").unwrap_or("105".to_string());
     sleep(Duration::from_secs(tv_delay.parse::<u64>().unwrap() + 30)).await;
     // TODO: update this to support Bo3 by appending '_match#'
     let path = format!("{}.dem", dathost_match.id);
