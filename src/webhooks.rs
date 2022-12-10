@@ -17,6 +17,7 @@ use std::env;
 use std::time::Duration;
 use tokio::time::sleep;
 
+#[post("/api/map-end")]
 pub async fn map_end(
     dathost_match: web::Json<DatHostMatch>,
     pool: web::Data<PgPool>,
