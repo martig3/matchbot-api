@@ -1,7 +1,7 @@
 use std::{env, time::Duration};
 
 use bytes::Bytes;
-use reqwest::{Client, Result};
+use reqwest::{Client, Response, Result};
 
 use crate::models::{DatHostServer, ServerId};
 
@@ -62,5 +62,24 @@ impl DathostClient {
             .await?
             .bytes()
             .await
+    }
+
+    pub async fn stop_server(&self, server_id: &ServerId) -> Result<Response> {
+        Ok(self
+            .0
+            .post(&format!(
+                "https://dathost.net/api/0.1/game-servers/{server_id}/stop"
+            ))
+            .send()
+            .await?)
+    }
+    pub async fn delete_server(&self, server_id: &ServerId) -> Result<Response> {
+        Ok(self
+            .0
+            .delete(&format!(
+                "https://dathost.net/api/0.1/game-servers/{server_id}"
+            ))
+            .send()
+            .await?)
     }
 }
