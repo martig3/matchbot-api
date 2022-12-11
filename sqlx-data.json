@@ -52,38 +52,6 @@
     },
     "query": "select t.id\n            from match_series ms\n            join teams t on t.id = ms.team_one\n         where ms.id = $1"
   },
-  "7e2da111c161eb252bcdb9a3c70b70aa58bfe410d197f19a3586de4c88b67693": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "update match_series set completed_at = now() where match_series.id = $1"
-  },
-  "928cf68d41a516c00b1424ff06625a02244e9b9dc9c02a8129782bf455d612cf": {
-    "describe": {
-      "columns": [
-        {
-          "name": "match_series",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "select s.match_series from servers s where s.server_id = $1"
-  },
   "97496f78d7dfaa06f6f5180f46af8ab22a7e56524fce4536d2da39bf72bd9f81": {
     "describe": {
       "columns": [
@@ -126,20 +94,5 @@
       }
     },
     "query": "select m.id from match m \n         join maps on maps.id = m.map \n         where m.match_series = $1 and maps.name = $2"
-  },
-  "e8b46c0d87c32183d409870da1d3879d37e4457571fde9e907842652b0febd07": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Int4",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "update match_scores\n            SET team_one_score = $1, team_two_score = $2\n        where match_id =\n            (select m.id\n            from servers s\n            join match m on s.match_series = m.match_series\n            join maps m2 on m2.id = m.map\n            where s.server_id = $3\n            and m2.name = $4)"
   }
 }
