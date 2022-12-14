@@ -15,7 +15,7 @@ use sqlx::PgPool;
 use self::{
     dathost::DathostClient,
     models::DatHostMatch,
-    webhooks::{map_end, round_end},
+    webhooks::{map_end, round_end, series_end},
 };
 
 #[actix_web::main]
@@ -60,6 +60,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::default())
             .service(map_end)
             .service(round_end)
+            .service(series_end)
     })
     .bind((host, port))?
     .run()
