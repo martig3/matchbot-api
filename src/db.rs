@@ -85,23 +85,6 @@ pub async fn complete_match(executor: impl PgExecutor<'_>, match_id: MatchId) ->
     .map(|result| result.rows_affected())
 }
 
-pub async fn maps_remaining(
-    executor: impl PgExecutor<'_>,
-    match_series_id: MatchSeriesId,
-) -> Result<i64> {
-    sqlx::query_scalar!(
-        "select count(m)
-        from match_series ms
-         join match m on ms.id = m.match_series
-        where ms.id = $1
-        and m.completed_at is null",
-        match_series_id.0
-    )
-    .fetch_one(executor)
-    .await
-    .map(Option::unwrap_or_default)
-}
-
 pub async fn complete_match_series(
     executor: impl PgExecutor<'_>,
     match_series_id: MatchSeriesId,

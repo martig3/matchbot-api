@@ -42,7 +42,7 @@ pub struct DatHostMatch {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct TeamStats {
-    pub score: u32,
+    pub score: Option<u32>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -77,7 +77,7 @@ pub struct QueryLoginTokenResponse {
     pub expires: u64,
 }
 
-#[derive(Debug, Type, EnumIter)]
+#[derive(Debug, Type, EnumIter, PartialEq)]
 #[sqlx(rename_all = "lowercase", type_name = "series_type")]
 pub enum SeriesType {
     Bo1,
@@ -94,4 +94,10 @@ pub struct MatchSeries {
     pub dathost_match: Option<String>,
     pub created_at: OffsetDateTime,
     pub completed_at: Option<OffsetDateTime>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DatHostMatchSeries {
+    pub id: String,
+    pub matches: Vec<DatHostMatch>,
 }

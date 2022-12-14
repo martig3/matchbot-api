@@ -1,9 +1,10 @@
 use crate::{
+    dathost::DathostClient,
     db,
     error::Error,
-    models::{MatchId, MatchSeriesId, TeamId},
+    models::{MatchId, MatchSeriesId, ServerId, TeamId},
+    steam::SteamWebClient,
     DatHostMatch,
-    steam::SteamWebClient, dathost::DathostClient,
 };
 use actix_web::web;
 use sqlx::PgPool;
@@ -28,8 +29,10 @@ pub async fn update_scores(
     match_id: MatchId,
     team_one_id: TeamId,
 ) -> Result<u64, Error> {
-    let mut team_one_score = i32::try_from(dathost_match.team1_stats.as_ref().unwrap().score)?;
-    let mut team_two_score = i32::try_from(dathost_match.team2_stats.as_ref().unwrap().score)?;
+    let mut team_one_score =
+        i32::try_from(dathost_match.team1_stats.as_ref().unwrap().score.unwrap())?;
+    let mut team_two_score =
+        i32::try_from(dathost_match.team2_stats.as_ref().unwrap().score.unwrap())?;
     let swap_teams = db::is_player_on_team(
         pool,
         series_id,
@@ -45,11 +48,16 @@ pub async fn update_scores(
     Ok(db::update_scores(pool, match_id, team_one_score, team_two_score).await?)
 }
 
-pub async fn teardown_server(dathost_match: DatHostMatch, dathost_client: web::Data<DathostClient>) -> Result<reqwest::Response, Error>{
-    let server = dathost_client.get_server_info(&dathost_match.server_id).await?;
+pub async fn teardown_server(
+    server_id: &ServerId,
+    dathost_client: web::Data<DathostClient>,
+) -> Result<reqwest::Response, Error> {
+    let server = dathost_client.get_server_info(server_id).await?;
     let steam_client = SteamWebClient::new()?;
-    let steamid = steam_client.query_login_token(server.csgo_settings.gslt).await?;
+    let steamid = steam_client
+        .query_login_token(server.csgo_settings.gslt)
+        .await?;
     steam_client.delete_gslt(steamid).await?;
-    dathost_client.stop_server(&dathost_match.server_id).await?;
-    Ok(dathost_client.delete_server(&dathost_match.server_id).await?)
+    dathost_client.stop_server(server_id).await?;
+    Ok(dathost_client.delete_server(server_id).await?)
 }
