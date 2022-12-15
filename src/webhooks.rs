@@ -22,9 +22,6 @@ pub async fn map_end(
     bucket: web::Data<Bucket>,
 ) -> Result<impl Responder, Error> {
     let match_series = get_series(pool.as_ref(), &dathost_match.server_id).await?;
-    if match_series.series_type != SeriesType::Bo1 {
-        return Ok((Vec::new(), StatusCode::NO_CONTENT));
-    }
     let match_series_id = MatchSeriesId(match_series.id);
     let map = match &dathost_match.map {
         // TODO: Remove this clone.
@@ -33,6 +30,10 @@ pub async fn map_end(
     };
     let match_id = get_match_id(pool.as_ref(), match_series_id, &map).await?;
     complete_match(pool.as_ref(), match_id).await?;
+    if match_series.series_type != SeriesType::Bo1 {
+        // exit early, /series-end handles Bo3, Bo5
+        return Ok((Vec::new(), StatusCode::NO_CONTENT));
+    }
     complete_match_series(pool.as_ref(), match_series_id).await?;
     let team_one_id = get_team_one_id(pool.as_ref(), match_series_id).await?;
     update_scores(
@@ -113,13 +114,6 @@ pub async fn series_end(
         if dathost_match.team1_stats.as_ref().unwrap().score.is_none() {
             continue;
         }
-        let match_id = get_match_id(
-            pool.as_ref(),
-            match_series_id,
-            &dathost_match.map.as_ref().unwrap(),
-        )
-        .await?;
-        complete_match(pool.as_ref(), match_id).await?;
         let demo_path = format!("{}.dem", dathost_match.id);
         let demo = client
             .get_file(&dathost_match.server_id, &demo_path)
