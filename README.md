@@ -26,6 +26,7 @@ AWS_SECRET_ACCESS_KEY=<aws secret key>
 BUCKET_NAME=<s3 bucketname>
 AWS_ENDPOINT=<s3 endpoint (I made this to use cloudflare s2, so unless you manually provide the aws endpoint it won't work. Submit an feature request if someone wants this!>
 TV_DELAY=<csgo server tv_delay value, defaults to 105>
+STEAM_API_KEY=<steam web api key>
 ```
 
 `docker run --env-file .env -d -p 8080:8080 ghcr.io/martig3/matchbot-api:latest`
