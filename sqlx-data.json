@@ -1,98 +1,209 @@
 {
   "db": "PostgreSQL",
-  "1316719db91bc70f197f2b0e34765be091c51f693f656fb6f626adc1549459da": {
+  "37731bcc8daf01207cc962dca07af5b52983a5022f8ef845135ca46fceccf338": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "disabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select * from maps where disabled is false"
+  },
+  "40981b078ea46af0a2b8be85b533d704a76c495cf223e7d641b67d102ccfaabb": {
+    "describe": {
+      "columns": [
+        {
+          "name": "location",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "server_id",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select * from server_templates order by location"
+  },
+  "611f787355a490047b0fc1e27165f9ae2b227d06cdb7748f768612a47748f577": {
     "describe": {
       "columns": [],
       "nullable": [],
       "parameters": {
         "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "update match\n            SET completed_at = now()\n        where id = $1"
-  },
-  "22964220cf1b4399307d1e2ad0a52e37ccdd2da0ceba2b747119ac5ca5b5517f": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "select count(m)\n        from match_series ms\n         join match m on ms.id = m.match_series\n        where ms.id = $1\n        and m.completed_at is null"
-  },
-  "42cb8c0ad3b979462b18ca6d22a255599674d0a49320b0729d2b6d81385e87f2": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int4"
-        ]
-      }
-    },
-    "query": "select t.id\n            from match_series ms\n            join teams t on t.id = ms.team_one\n         where ms.id = $1"
-  },
-  "97496f78d7dfaa06f6f5180f46af8ab22a7e56524fce4536d2da39bf72bd9f81": {
-    "describe": {
-      "columns": [
-        {
-          "name": "count",
-          "ordinal": 0,
-          "type_info": "Int8"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Int4",
-          "Int4",
-          "Int8"
-        ]
-      }
-    },
-    "query": "select count(si.*) from match_series ms join teams t on ms.team_one = t.id or ms.team_two = t.id join team_members tm on tm.team = t.id join steam_ids si on si.discord = tm.member where ms.id = $1 and t.id = $2 and si.steam = $3"
-  },
-  "bcd61460a82ca64741cc6cbca3e9e66bb4550252f8f29353c81cffef0da33a53": {
-    "describe": {
-      "columns": [
-        {
-          "name": "id",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Int4",
+          "Text",
           "Text"
         ]
       }
     },
-    "query": "select m.id from match m \n         join maps on maps.id = m.map \n         where m.match_series = $1 and maps.name = $2"
+    "query": "insert into server_templates (location, server_id) values ($1, $2)"
+  },
+  "72731cd76b310ec291d2a9d67d457b5887630fb09fa5065955bf7824c04e0355": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "delete from server_templates where location = $1"
+  },
+  "7a5a79f951d908cb1f9102b465ecaa7e1585d4a7f541e1dda3e19bd5b71632ae": {
+    "describe": {
+      "columns": [
+        {
+          "name": "discord",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "steam",
+          "ordinal": 1,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "select si.*\n                 from steam_ids si\n                    join team_members tm on tm.member = si.discord\n                    join teams t on t.id = tm.team\n                 where t.role = $1"
+  },
+  "82857af5fb28a5a22092b5f0d86d62019eee2d1acc415777d4de183f0fa010b3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "discord",
+          "ordinal": 0,
+          "type_info": "Int8"
+        },
+        {
+          "name": "steam",
+          "ordinal": 1,
+          "type_info": "Int8"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int8"
+        ]
+      }
+    },
+    "query": "select * from steam_ids where discord = $1"
+  },
+  "a089a138eda08751e329768ac92fdbd725f34e2e61f1da2d4d6d5915a356fb44": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "disabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Int4"
+        ]
+      }
+    },
+    "query": "select * from maps where id = $1"
+  },
+  "ccfc8fc1bb779503251926e3a1020bbab4e5ce5461d30bc9864a7cf65bc0ac20": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Int8",
+          "Int8"
+        ]
+      }
+    },
+    "query": "INSERT INTO steam_ids (discord, steam) VALUES ($1, $2)\n                    ON CONFLICT (discord) DO UPDATE\n                    SET steam = $2"
+  },
+  "fa8ab8ca8ad360500b9a33f7fc2ac8198f8f750933f9529d1e3d52358d1c69cc": {
+    "describe": {
+      "columns": [
+        {
+          "name": "id",
+          "ordinal": 0,
+          "type_info": "Int4"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "disabled",
+          "ordinal": 2,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": []
+      }
+    },
+    "query": "select * from maps"
   }
 }
