@@ -8,6 +8,8 @@ use serde_json::json;
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]
+    MatchbotCoreError(#[from] anyhow::Error),
+    #[error(transparent)]
     S3(#[from] s3::error::S3Error),
     #[error(transparent)]
     Reqwest(#[from] reqwest::Error),

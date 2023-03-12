@@ -1,16 +1,18 @@
 mod dathost;
 mod db;
 mod error;
+mod matches;
 mod models;
 mod steam;
 mod utils;
 mod webhooks;
 
-use std::env;
-
+use crate::matches::matches as matches_all;
+use actix_cors::Cors;
 use actix_web::{middleware::Logger, web, App, HttpServer};
 use s3::{creds::Credentials, Bucket, Region};
 use sqlx::PgPool;
+use std::env;
 
 use self::{
     dathost::DathostClient,
@@ -53,14 +55,22 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or(8080);
 
     HttpServer::new(move || {
+        let cors = Cors::default()
+            .allowed_origin("http://localhost:5173")
+            .allowed_methods(vec!["GET", "POST"])
+            .allowed_headers(vec![http::header::AUTHORIZATION, http::header::ACCEPT])
+            .allowed_header(http::header::CONTENT_TYPE)
+            .max_age(3600);
         App::new()
             .app_data(web::Data::new(pool.clone()))
             .app_data(web::Data::new(dathost.clone()))
             .app_data(web::Data::new(bucket.clone()))
+            .wrap(cors)
             .wrap(Logger::default())
             .service(map_end)
             .service(round_end)
             .service(series_end)
+            .service(matches_all)
     })
     .bind((host, port))?
     .run()
